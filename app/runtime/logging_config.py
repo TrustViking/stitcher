@@ -35,14 +35,18 @@ def get_logger(module_name: str) -> logging.Logger:
     return logging.getLogger(f"{base}.{name}")
 
 
-def resolve_log_dir() -> Path:
+def resolve_log_dir(logs_dir: Path | None = None) -> Path:
     """Вернуть директорию логов (logs/ в корне проекта)."""
+    if logs_dir is not None:
+        return logs_dir
     return PROJECT_ROOT / "logs"
 
 
-def resolve_log_file_path(*, label: str = LOGGER_NAME_DEFAULT) -> Path:
+def resolve_log_file_path(
+    *, label: str = LOGGER_NAME_DEFAULT, logs_dir: Path | None = None
+) -> Path:
     """Сгенерировать путь к лог-файлу с timestamp."""
-    log_dir = resolve_log_dir()
+    log_dir = resolve_log_dir(logs_dir)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return log_dir / f"{stamp}_{label}.log"
 
@@ -54,13 +58,13 @@ def _remove_and_close_handlers(logger: logging.Logger) -> None:
         handler.close()
 
 
-def setup_logging(debug: bool = False) -> None:
+def setup_logging(debug: bool = False, logs_dir: Path | None = None) -> None:
     """Настроить логирование для CLI-режима.
 
     - file handler: DEBUG (все записи)
     - stream handler: INFO (stdout)
     """
-    log_file = resolve_log_file_path(label=LOGGER_NAME_DEFAULT)
+    log_file = resolve_log_file_path(label=LOGGER_NAME_DEFAULT, logs_dir=logs_dir)
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
     file_fmt = logging.Formatter(LOG_FORMAT_FILE)
@@ -93,12 +97,15 @@ def setup_logging(debug: bool = False) -> None:
     base_logger.debug("Logging initialized: file=%s debug=%s", log_file, debug)
 
 
-def setup_bot_logging(*, debug: bool = False) -> None:
+def setup_bot_logging(*, debug: bool = False, logs_dir: Path | None = None) -> None:
     """Настроить логирование для Telegram-бота.
 
     Хэндлеры вешаются на root logger, чтобы aiogram тоже писался в файл.
     """
-    log_file = resolve_log_file_path(label=f"{LOGGER_NAME_DEFAULT}_bot")
+    log_file = resolve_log_file_path(
+        label=f"{LOGGER_NAME_DEFAULT}_bot",
+        logs_dir=logs_dir,
+    )
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
     file_fmt = logging.Formatter(LOG_FORMAT_FILE)

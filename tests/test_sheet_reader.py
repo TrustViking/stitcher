@@ -45,6 +45,8 @@ def _make_config() -> StitcherConfig:
         encoding=EncodingConfig(
             gpu_profile=Path("gpu.txt"),
             cpu_profile=Path("cpu.txt"),
+            ytdlp_video_profile=Path("ytdlp_video.txt"),
+            ytdlp_thumbnail_profile=Path("ytdlp_thumbnail.txt"),
             fallback_to_cpu=True,
         ),
         video=VideoConfig(width=1920, height=1080, fps=25),

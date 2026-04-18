@@ -86,10 +86,16 @@ def load_config(config_path: Path | None = None) -> StitcherConfig:
     enc_raw = raw["encoding"]
     encoding = EncodingConfig(
         gpu_profile=_resolve_path(
-            enc_raw.get("gpu_profile", "./tools/_profiles/gpu_nvenc.txt"), root
+            enc_raw.get("gpu_profile", "./profiles/gpu_nvenc.txt"), root
         ),
         cpu_profile=_resolve_path(
-            enc_raw.get("cpu_profile", "./tools/_profiles/cpu_libx264.txt"), root
+            enc_raw.get("cpu_profile", "./profiles/cpu_libx264.txt"), root
+        ),
+        ytdlp_video_profile=_resolve_path(
+            enc_raw.get("ytdlp_video_profile", "./profiles/ytdlp_video.txt"), root
+        ),
+        ytdlp_thumbnail_profile=_resolve_path(
+            enc_raw.get("ytdlp_thumbnail_profile", "./profiles/ytdlp_thumbnail.txt"), root
         ),
         fallback_to_cpu=bool(enc_raw.get("fallback_to_cpu", True)),
     )

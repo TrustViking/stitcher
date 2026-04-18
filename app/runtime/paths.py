@@ -33,6 +33,7 @@ class StitcherPaths:
     temp_dir: Path
     output_dir: Path
     logs_dir: Path
+    state_dir: Path
     ffmpeg_profiles_dir: Path
     secrets_dir: Path
 
@@ -51,7 +52,8 @@ def get_project_paths(config: "StitcherConfig | None" = None) -> StitcherPaths:
             temp_dir=config.paths.temp_dir,
             output_dir=config.paths.output_dir,
             logs_dir=config.paths.logs_dir,
-            ffmpeg_profiles_dir=root / "ffmpeg_profiles",
+            state_dir=config.paths.state_dir,
+            ffmpeg_profiles_dir=root / "profiles",
             secrets_dir=root / "secrets",
         )
     return StitcherPaths(
@@ -60,6 +62,7 @@ def get_project_paths(config: "StitcherConfig | None" = None) -> StitcherPaths:
         temp_dir=root / "temp",
         output_dir=root / "output",
         logs_dir=root / "logs",
-        ffmpeg_profiles_dir=root / "ffmpeg_profiles",
+        state_dir=root / "state",
+        ffmpeg_profiles_dir=root / "profiles",
         secrets_dir=root / "secrets",
     )

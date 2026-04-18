@@ -11,8 +11,9 @@ from app.models.domain import DownloadedVideo, SourceVideo
 class VideoDownloader:
     """Скачивание видео через yt-dlp."""
 
-    def __init__(self, *, ytdlp_path: Path, logger: logging.Logger) -> None:
+    def __init__(self, *, ytdlp_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
         self._ytdlp_path = ytdlp_path
+        self._ytdlp_args = ytdlp_args
         self._logger = logger
 
     def download(self, video: SourceVideo, slot_temp_dir: Path) -> DownloadedVideo:
@@ -22,10 +23,7 @@ class VideoDownloader:
 
         command = [
             str(self._ytdlp_path),
-            "-f",
-            "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio",
-            "--merge-output-format",
-            "mkv",
+            *self._ytdlp_args,
             "-o",
             str(output_path),
             video.url,

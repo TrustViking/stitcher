@@ -8,6 +8,19 @@ _AUDIO_OPTIONS_WITH_VALUE = {"-c:a", "-b:a", "-ar", "-ac", "-af"}
 _AUDIO_FLAGS = {"-an"}
 
 
+def load_ytdlp_profile(profile_path: Path) -> list[str]:
+    """Загрузить yt-dlp профиль из .txt файла в список аргументов."""
+    if not profile_path.exists():
+        raise RuntimeError(f"Файл yt-dlp профиля не найден: {profile_path}")
+    args: list[str] = []
+    for raw_line in profile_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        args.extend(shlex.split(line))
+    return args
+
+
 def load_profile(profile_path: Path) -> list[str]:
     """Загрузить профиль ffmpeg из .txt файла в список аргументов."""
     if not profile_path.exists():
@@ -111,6 +124,10 @@ def build_concat_command(
         str(manifest_path),
         "-c",
         "copy",
+        "-fflags",
+        "+genpts",
+        "-avoid_negative_ts",
+        "make_zero",
         str(output_path),
     ]
 

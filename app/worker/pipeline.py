@@ -10,6 +10,7 @@ from app.concat.manifest_builder import build_manifest
 from app.config.settings import StitcherConfig
 from app.download.thumbnail_fetcher import ThumbnailFetcher
 from app.download.video_downloader import VideoDownloader
+from app.ffmpeg.command_builder import load_ytdlp_profile
 from app.models.domain import StitchJob, WorkerProgress, WorkerResult
 from app.runtime.logging_config import get_logger
 from app.transcode.fade_clip import FadeClipBuilder
@@ -26,12 +27,17 @@ class StitchPipeline:
         self._progress = progress or NullProgressTracker()
         self._logger = get_logger(__name__)
 
+        video_ytdlp_args = load_ytdlp_profile(config.encoding.ytdlp_video_profile)
+        thumb_ytdlp_args = load_ytdlp_profile(config.encoding.ytdlp_thumbnail_profile)
+
         self._video_downloader = VideoDownloader(
             ytdlp_path=config.tools.ytdlp_path,
+            ytdlp_args=video_ytdlp_args,
             logger=self._logger,
         )
         self._thumbnail_fetcher = ThumbnailFetcher(
             ytdlp_path=config.tools.ytdlp_path,
+            ytdlp_args=thumb_ytdlp_args,
             logger=self._logger,
         )
         self._video_normalizer = VideoNormalizer(

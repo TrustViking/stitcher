@@ -7,15 +7,14 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from app.runtime.paths import PROJECT_ROOT
+
 if TYPE_CHECKING:
     import logging
 
     from app.config.settings import EnvConfig, StitcherConfig
     from app.input.sheet_reader import SlotLoadReport
     from app.models.domain import StitchJob, WorkerResult
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def _setup_stdio_utf8() -> None:
@@ -49,18 +48,18 @@ def main() -> None:
 
     load_env_file()
 
-    from app.runtime.logging_config import get_logger, setup_logging
-
-    setup_logging(debug=args.debug)
-    logger = get_logger(__name__)
-
     from app.config.config_loader import load_config
 
     try:
         config = load_config()
     except RuntimeError as exc:
-        logger.error("Ошибка загрузки конфигурации: %s", exc)
+        print(f"Ошибка загрузки конфигурации: {exc}", file=sys.stderr)
         sys.exit(1)
+
+    from app.runtime.logging_config import get_logger, setup_logging
+
+    setup_logging(debug=args.debug, logs_dir=config.paths.logs_dir)
+    logger = get_logger(__name__)
 
     from app.runtime.env_loader import load_env_config
 

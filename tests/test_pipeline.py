@@ -48,8 +48,18 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
 
     gpu_profile = tmp_path / "gpu.txt"
     cpu_profile = tmp_path / "cpu.txt"
+    ytdlp_video_profile = tmp_path / "ytdlp_video.txt"
+    ytdlp_thumbnail_profile = tmp_path / "ytdlp_thumbnail.txt"
     gpu_profile.write_text("-c:v h264_nvenc\n", encoding="utf-8")
     cpu_profile.write_text("-c:v libx264\n", encoding="utf-8")
+    ytdlp_video_profile.write_text(
+        "-f bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio\n--merge-output-format mkv\n",
+        encoding="utf-8",
+    )
+    ytdlp_thumbnail_profile.write_text(
+        "--write-thumbnail\n--skip-download\n--convert-thumbnails jpg\n",
+        encoding="utf-8",
+    )
 
     return StitcherConfig(
         paths=PathsConfig(
@@ -60,7 +70,13 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
         ),
         tools=ToolsConfig(ytdlp_path=tmp_path / "yt-dlp.exe", ffmpeg_path=tmp_path / "ffmpeg.exe"),
         ytdlp=YtDlpConfig(auto_update=True, update_check_interval_days=7),
-        encoding=EncodingConfig(gpu_profile=gpu_profile, cpu_profile=cpu_profile, fallback_to_cpu=True),
+        encoding=EncodingConfig(
+            gpu_profile=gpu_profile,
+            cpu_profile=cpu_profile,
+            ytdlp_video_profile=ytdlp_video_profile,
+            ytdlp_thumbnail_profile=ytdlp_thumbnail_profile,
+            fallback_to_cpu=True,
+        ),
         video=VideoConfig(width=1920, height=1080, fps=25),
         audio=AudioConfig(codec="aac", sample_rate=48000, bitrate="512k", channels="stereo"),
         thumbnail=ThumbnailConfig(duration_seconds=3, source="youtube", fade_duration_seconds=0),

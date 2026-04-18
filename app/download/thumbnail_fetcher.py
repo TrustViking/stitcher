@@ -11,8 +11,9 @@ from app.models.domain import DownloadedThumbnail, SourceVideo
 class ThumbnailFetcher:
     """Получение превью видео через yt-dlp."""
 
-    def __init__(self, *, ytdlp_path: Path, logger: logging.Logger) -> None:
+    def __init__(self, *, ytdlp_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
         self._ytdlp_path = ytdlp_path
+        self._ytdlp_args = ytdlp_args
         self._logger = logger
 
     def fetch(self, video: SourceVideo, slot_temp_dir: Path) -> DownloadedThumbnail:
@@ -22,10 +23,7 @@ class ThumbnailFetcher:
 
         command = [
             str(self._ytdlp_path),
-            "--write-thumbnail",
-            "--skip-download",
-            "--convert-thumbnails",
-            "jpg",
+            *self._ytdlp_args,
             "-o",
             str(output_stem),
             video.url,

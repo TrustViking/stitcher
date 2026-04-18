@@ -25,8 +25,12 @@ from main import _cmd_run
 def _make_config(tmp_path: Path) -> StitcherConfig:
     gpu_profile = tmp_path / "gpu.txt"
     cpu_profile = tmp_path / "cpu.txt"
+    ytdlp_video_profile = tmp_path / "ytdlp_video.txt"
+    ytdlp_thumbnail_profile = tmp_path / "ytdlp_thumbnail.txt"
     gpu_profile.write_text("-c:v h264_nvenc\n", encoding="utf-8")
     cpu_profile.write_text("-c:v libx264\n", encoding="utf-8")
+    ytdlp_video_profile.write_text("-f bestvideo+bestaudio\n--merge-output-format mkv\n", encoding="utf-8")
+    ytdlp_thumbnail_profile.write_text("--write-thumbnail\n--skip-download\n", encoding="utf-8")
 
     return StitcherConfig(
         paths=PathsConfig(
@@ -43,6 +47,8 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
         encoding=EncodingConfig(
             gpu_profile=gpu_profile,
             cpu_profile=cpu_profile,
+            ytdlp_video_profile=ytdlp_video_profile,
+            ytdlp_thumbnail_profile=ytdlp_thumbnail_profile,
             fallback_to_cpu=True,
         ),
         video=VideoConfig(width=1920, height=1080, fps=25),

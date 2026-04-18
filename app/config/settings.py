@@ -35,6 +35,8 @@ class EncodingConfig:
 
     gpu_profile: Path
     cpu_profile: Path
+    ytdlp_video_profile: Path
+    ytdlp_thumbnail_profile: Path
     fallback_to_cpu: bool
 
 

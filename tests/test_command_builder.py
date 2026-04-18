@@ -84,5 +84,9 @@ def test_build_concat_command() -> None:
         "manifest.txt",
         "-c",
         "copy",
+        "-fflags",
+        "+genpts",
+        "-avoid_negative_ts",
+        "make_zero",
         "result.mp4",
     ]

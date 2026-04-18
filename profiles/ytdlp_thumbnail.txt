@@ -1,0 +1,5 @@
+# yt-dlp профиль: скачивание thumbnail
+# Аргументы вставляются перед <output_stem> и <url>
+--write-thumbnail
+--skip-download
+--convert-thumbnails jpg

@@ -7,10 +7,13 @@ class BotAuth:
 
     def __init__(
         self,
-        user_ids: tuple[int, ...],
+        user_ids: tuple[int, ...] = (),
         admin_ids: tuple[int, ...] = (),
+        *,
+        allowed_user_ids: tuple[int, ...] | None = None,
     ) -> None:
-        self._allowed = set(user_ids) | set(admin_ids)
+        source_user_ids = allowed_user_ids if allowed_user_ids is not None else user_ids
+        self._allowed = set(source_user_ids) | set(admin_ids)
 
     def is_allowed(self, user_id: int) -> bool:
         """Проверить доступ. Если allowed пуст — разрешить всем."""

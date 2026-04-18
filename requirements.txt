@@ -3,6 +3,7 @@ aiogram==3.27.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
 aiosignal==1.4.0
+altgraph==0.17.5
 annotated-types==0.7.0
 attrs==26.1.0
 certifi==2026.2.25
@@ -25,6 +26,7 @@ magic-filter==1.0.12
 multidict==6.7.1
 oauthlib==3.3.1
 packaging==26.1
+pefile==2024.8.26
 pluggy==1.6.0
 propcache==0.4.1
 proto-plus==1.27.2
@@ -35,11 +37,15 @@ pycparser==3.0
 pydantic==2.12.5
 pydantic_core==2.41.5
 Pygments==2.20.0
+pyinstaller==6.19.0
+pyinstaller-hooks-contrib==2026.4
 pyparsing==3.3.2
 pytest==9.0.3
 python-dotenv==1.2.2
+pywin32-ctypes==0.2.3
 requests==2.33.1
 requests-oauthlib==2.0.0
+setuptools==82.0.1
 six==1.17.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
