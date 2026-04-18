@@ -43,6 +43,7 @@ def main() -> None:
     args = parser.parse_args()
 
     _setup_stdio_utf8()
+    print("🔵 Stitcher запускается...")
 
     from app.runtime.env_loader import load_env_file
 
@@ -86,6 +87,8 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, env: EnvConfig, logger: l
     if not _preflight_checks(config, env, logger):
         return 1
 
+    print("🔵 Проверяю окружение...")
+
     from app.runtime.ytdlp_updater import maybe_update_ytdlp
 
     update_status = maybe_update_ytdlp(
@@ -97,6 +100,8 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, env: EnvConfig, logger: l
     )
     ytdlp_info = _build_ytdlp_info(update_status)
     codec_label = _build_codec_label(config)
+
+    print("🔵 Читаю таблицу и получаю данные видео...")
 
     report = _load_future_slots(config, env, logger)
     if report is None:

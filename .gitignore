@@ -70,6 +70,7 @@ ENV/
 # Logs / temp / outputs
 ########################################
 *.log
+*.ico
 logs/
 tmp/
 temp/

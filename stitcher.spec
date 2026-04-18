@@ -83,6 +83,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='stitcher',
+    icon='stitch.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
