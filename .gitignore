@@ -82,6 +82,7 @@ docs/
 image/
 tg/
 state/
+tools/
 
 ########################################
 # IDE / OS / local workspace stuff

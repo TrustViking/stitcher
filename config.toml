@@ -1,0 +1,42 @@
+[paths]
+temp_dir = "./temp"
+output_dir = "./output"
+logs_dir = "./logs"
+state_dir = "./state"
+
+[tools]
+ytdlp_path = "./tools/_yt-dlp/yt-dlp.exe"
+ffmpeg_path = "./tools/_ffmpeg/bin/ffmpeg.exe"
+
+[ytdlp]
+auto_update = true
+update_check_interval_days = 7
+
+[encoding]
+gpu_profile = "./profiles/gpu_nvenc.txt"
+cpu_profile = "./profiles/cpu_libx264.txt"
+fallback_to_cpu = true
+
+[video]
+width = 1920
+height = 1080
+fps = 25
+
+[audio]
+codec = "aac"
+sample_rate = 48000
+bitrate = "512k"
+channels = "stereo"
+
+[thumbnail]
+duration_seconds = 3
+fade_duration_seconds = 1
+source = "youtube"
+
+[output]
+filename_template = "{date}_{time}_{lang}.mp4"
+
+[retention]
+cleanup_on_start = true
+temp_max_age_days = 3
+logs_max_age_days = 7
