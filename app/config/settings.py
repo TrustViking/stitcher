@@ -75,6 +75,13 @@ class RetentionConfig:
 
 
 @dataclass(frozen=True)
+class GoogleConfig:
+    """Настройки интеграции с Google."""
+
+    sheets_id: str
+
+
+@dataclass(frozen=True)
 class StitcherConfig:
     """Технические параметры из config.toml."""
 
@@ -87,13 +94,13 @@ class StitcherConfig:
     thumbnail: ThumbnailConfig
     output: OutputConfig
     retention: RetentionConfig
+    google: GoogleConfig
 
 
 @dataclass(frozen=True)
 class EnvConfig:
     """Пользовательские настройки из secrets/.env."""
 
-    google_sheets_id: str
     google_drive_folder_id: str
     telegram_bot_token: str
     telegram_chat_id: str

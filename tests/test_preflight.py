@@ -7,7 +7,7 @@ from pathlib import Path
 from app.config.settings import (
     AudioConfig,
     EncodingConfig,
-    EnvConfig,
+    GoogleConfig,
     OutputConfig,
     PathsConfig,
     RetentionConfig,
@@ -25,6 +25,7 @@ def _make_config(
     *,
     ytdlp_path: Path,
     ffmpeg_path: Path,
+    sheets_id: str = "",
 ) -> StitcherConfig:
     gpu_profile = tmp_path / "gpu.txt"
     cpu_profile = tmp_path / "cpu.txt"
@@ -56,17 +57,7 @@ def _make_config(
         thumbnail=ThumbnailConfig(duration_seconds=3, source="youtube"),
         output=OutputConfig(filename_template="{date}_{time}_{lang}.mp4"),
         retention=RetentionConfig(cleanup_on_start=False, temp_max_age_days=3, logs_max_age_days=7),
-    )
-
-
-def _make_env(*, sheets_id: str) -> EnvConfig:
-    return EnvConfig(
-        google_sheets_id=sheets_id,
-        google_drive_folder_id="",
-        telegram_bot_token="",
-        telegram_chat_id="",
-        telegram_admin_user_ids=(),
-        telegram_user_ids=(),
+        google=GoogleConfig(sheets_id=sheets_id),
     )
 
 
@@ -77,14 +68,14 @@ def test_collect_preflight_errors_aggregates_all_messages(tmp_path: Path, monkey
         tmp_path,
         ytdlp_path=tmp_path / "missing_ytdlp.exe",
         ffmpeg_path=tmp_path / "missing_ffmpeg.exe",
+        sheets_id="",
     )
-    env = _make_env(sheets_id="")
     logger = logging.getLogger("test_preflight")
 
-    errors = _collect_preflight_errors(config, env, logger)
+    errors = _collect_preflight_errors(config, logger)
 
     assert len(errors) >= 4
-    assert any("GOOGLE_SHEETS_ID не задан" in item for item in errors)
+    assert any("google.sheets_id не задан" in item for item in errors)
     assert any("OAuth credentials не найдены" in item for item in errors)
     assert any("yt-dlp не найден" in item for item in errors)
     assert any("ffmpeg не найден" in item for item in errors)
@@ -97,16 +88,16 @@ def test_preflight_prints_readable_error_block(tmp_path: Path, monkeypatch, caps
         tmp_path,
         ytdlp_path=tmp_path / "missing_ytdlp.exe",
         ffmpeg_path=tmp_path / "missing_ffmpeg.exe",
+        sheets_id="",
     )
-    env = _make_env(sheets_id="")
     logger = logging.getLogger("test_preflight")
 
-    ok = _preflight_checks(config, env, logger)
+    ok = _preflight_checks(config, logger)
     captured = capsys.readouterr().out
 
     assert ok is False
     assert "Preflight checks failed" in captured
-    assert "GOOGLE_SHEETS_ID не задан" in captured
+    assert "google.sheets_id не задан" in captured
     assert "Исправьте ошибки выше и запустите снова." in captured
 
 
@@ -122,8 +113,7 @@ def test_preflight_passes_when_everything_available(tmp_path: Path, monkeypatch)
     ytdlp.write_text("", encoding="utf-8")
     ffmpeg.write_text("", encoding="utf-8")
 
-    config = _make_config(tmp_path, ytdlp_path=ytdlp, ffmpeg_path=ffmpeg)
-    env = _make_env(sheets_id="sheet-id")
+    config = _make_config(tmp_path, ytdlp_path=ytdlp, ffmpeg_path=ffmpeg, sheets_id="sheet-id")
     logger = logging.getLogger("test_preflight")
 
-    assert _preflight_checks(config, env, logger) is True
+    assert _preflight_checks(config, logger) is True

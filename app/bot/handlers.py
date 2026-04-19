@@ -214,7 +214,7 @@ def _load_future_jobs(config: StitcherConfig, env: EnvConfig) -> list[StitchJob]
     )
     sheets_service = factory.create_sheets_service()
     client = GoogleSheetsClient(sheets_service)
-    loader = SlotLoader(client, config=config, sheets_id=env.google_sheets_id)
+    loader = SlotLoader(client, config=config, sheets_id=config.google.sheets_id)
     return loader.load_future_slots().jobs
 
 

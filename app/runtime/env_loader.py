@@ -26,7 +26,6 @@ def load_env_file() -> None:
 def load_env_config() -> EnvConfig:
     """Собрать EnvConfig из os.environ. Вызывать только после load_env_file()."""
     return EnvConfig(
-        google_sheets_id=_get_str("GOOGLE_SHEETS_ID"),
         google_drive_folder_id=_get_str("GOOGLE_DRIVE_FOLDER_ID"),
         telegram_bot_token=_get_str("TELEGRAM_BOT_TOKEN"),
         telegram_chat_id=_get_str("TELEGRAM_CHAT_ID"),

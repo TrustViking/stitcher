@@ -11,8 +11,9 @@ from app.models.domain import DownloadedVideo, SourceVideo
 class VideoDownloader:
     """Скачивание видео через yt-dlp."""
 
-    def __init__(self, *, ytdlp_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
+    def __init__(self, *, ytdlp_path: Path, ffmpeg_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
         self._ytdlp_path = ytdlp_path
+        self._ffmpeg_path = ffmpeg_path
         self._ytdlp_args = ytdlp_args
         self._logger = logger
 
@@ -23,6 +24,8 @@ class VideoDownloader:
 
         command = [
             str(self._ytdlp_path),
+            "--ffmpeg-location",
+            str(self._ffmpeg_path.parent),
             *self._ytdlp_args,
             "-o",
             str(output_path),

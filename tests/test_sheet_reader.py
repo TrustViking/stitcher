@@ -13,6 +13,7 @@ import pytest
 from app.config.settings import (
     AudioConfig,
     EncodingConfig,
+    GoogleConfig,
     OutputConfig,
     PathsConfig,
     RetentionConfig,
@@ -54,6 +55,7 @@ def _make_config() -> StitcherConfig:
         thumbnail=ThumbnailConfig(duration_seconds=3, source="youtube"),
         output=OutputConfig(filename_template="{date}_{time}_{lang}.mp4"),
         retention=RetentionConfig(cleanup_on_start=False, temp_max_age_days=3, logs_max_age_days=7),
+        google=GoogleConfig(sheets_id=""),
     )
 
 
@@ -201,5 +203,5 @@ def test_empty_sheets_id_raises() -> None:
     mock_enricher = MagicMock()
     mock_enricher.enrich.return_value = []
     loader = SlotLoader(mock_client, mock_enricher, config=_make_config(), sheets_id="")
-    with pytest.raises(RuntimeError, match="GOOGLE_SHEETS_ID"):
+    with pytest.raises(RuntimeError, match="google.sheets_id"):
         loader.load_future_slots()

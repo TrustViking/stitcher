@@ -1,4 +1,5 @@
 """Stitcher CLI — точка входа."""
+
 from __future__ import annotations
 
 import argparse
@@ -12,7 +13,7 @@ from app.runtime.paths import PROJECT_ROOT
 if TYPE_CHECKING:
     import logging
 
-    from app.config.settings import EnvConfig, StitcherConfig
+    from app.config.settings import StitcherConfig
     from app.input.sheet_reader import SlotLoadReport
     from app.models.domain import StitchJob, WorkerResult
 
@@ -62,10 +63,6 @@ def main() -> None:
     setup_logging(debug=args.debug, logs_dir=config.paths.logs_dir)
     logger = get_logger(__name__)
 
-    from app.runtime.env_loader import load_env_config
-
-    env = load_env_config()
-
     if config.retention.cleanup_on_start:
         from app.runtime.cleanup import run_startup_cleanup
 
@@ -78,13 +75,13 @@ def main() -> None:
             logs_max_age_days=config.retention.logs_max_age_days,
         )
 
-    exit_code = _cmd_run(dry_run=args.dry_run, config=config, env=env, logger=logger)
+    exit_code = _cmd_run(dry_run=args.dry_run, config=config, logger=logger)
     sys.exit(exit_code)
 
 
-def _cmd_run(*, dry_run: bool, config: StitcherConfig, env: EnvConfig, logger: logging.Logger) -> int:
+def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -> int:
     """Главный сценарий: обработать все будущие слоты из Google Sheet."""
-    if not _preflight_checks(config, env, logger):
+    if not _preflight_checks(config, logger):
         return 1
 
     print("🔵 Проверяю окружение...")
@@ -103,7 +100,7 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, env: EnvConfig, logger: l
 
     print("🔵 Читаю таблицу и получаю данные видео...")
 
-    report = _load_future_slots(config, env, logger)
+    report = _load_future_slots(config, logger)
     if report is None:
         return 1
 
@@ -156,7 +153,7 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, env: EnvConfig, logger: l
 
 
 def _load_future_slots(
-    config: StitcherConfig, env: EnvConfig, logger: logging.Logger
+    config: StitcherConfig, logger: logging.Logger
 ) -> SlotLoadReport | None:
     from app.google.auth import GoogleServicesFactory
     from app.google.sheets_client import GoogleSheetsClient
@@ -181,7 +178,7 @@ def _load_future_slots(
             GoogleSheetsClient(sheets_service),
             enricher=enricher,
             config=config,
-            sheets_id=env.google_sheets_id,
+            sheets_id=config.google.sheets_id,
         )
         return loader.load_future_slots()
     except Exception as exc:
@@ -189,11 +186,9 @@ def _load_future_slots(
         return None
 
 
-def _preflight_checks(
-    config: StitcherConfig, env: EnvConfig, logger: logging.Logger
-) -> bool:
+def _preflight_checks(config: StitcherConfig, logger: logging.Logger) -> bool:
     """Проверить окружение и вывести все ошибки одним блоком."""
-    errors = _collect_preflight_errors(config, env, logger)
+    errors = _collect_preflight_errors(config, logger)
     if not errors:
         return True
 
@@ -205,14 +200,14 @@ def _preflight_checks(
 
 
 def _collect_preflight_errors(
-    config: StitcherConfig, env: EnvConfig, logger: logging.Logger
+    config: StitcherConfig, logger: logging.Logger
 ) -> list[str]:
     errors: list[str] = []
 
-    if not env.google_sheets_id:
+    if not config.google.sheets_id:
         errors.append(
-            "❌ GOOGLE_SHEETS_ID не задан в secrets/.env.\n"
-            "   Вставьте ID вашей Google-таблицы."
+            "❌ google.sheets_id не задан в config.toml.\n"
+            "   Вставьте ID вашей Google-таблицы в секцию [google]."
         )
 
     credentials_path = PROJECT_ROOT / "secrets" / "credentials.json"
@@ -241,7 +236,11 @@ def _collect_preflight_errors(
     if not config.encoding.cpu_profile.exists():
         errors.append(f"❌ CPU профиль не найден: {config.encoding.cpu_profile}")
 
-    for target in (config.paths.temp_dir, config.paths.output_dir, config.paths.state_dir):
+    for target in (
+        config.paths.temp_dir,
+        config.paths.output_dir,
+        config.paths.state_dir,
+    ):
         try:
             target.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
@@ -340,7 +339,7 @@ def _print_sheet_summary(report: SlotLoadReport) -> None:
         for lang, count in sorted(report.rows_by_language.items())
     )
     print(f"  таблица:   {report.total_rows} строк")
-    print(f"  обогащено: {report.enriched_rows}/{report.total_rows}")
+    print(f"  дополнено: {report.enriched_rows}/{report.total_rows}")
     print(f"  языки:     {lang_parts}")
     print()
 

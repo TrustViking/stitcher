@@ -1,3 +1,7 @@
+
+[google]
+sheets_id = "1hz9PgWB3WByvZAlndbILMykMNAMROTEibN5jy0zWz9c"
+
 [paths]
 temp_dir = "./temp"
 output_dir = "./output"
@@ -42,3 +46,4 @@ filename_template = "{date}_{time}_{lang}.mp4"
 cleanup_on_start = true
 temp_max_age_days = 3
 logs_max_age_days = 7
+

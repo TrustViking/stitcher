@@ -1,13 +1,15 @@
 """Тесты оркестратора StitchPipeline."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import List
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from app.config.settings import (
     AudioConfig,
     EncodingConfig,
+    GoogleConfig,
     OutputConfig,
     PathsConfig,
     RetentionConfig,
@@ -82,6 +84,7 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
         thumbnail=ThumbnailConfig(duration_seconds=3, source="youtube", fade_duration_seconds=0),
         output=OutputConfig(filename_template="{date}_{time}_{lang}.mp4"),
         retention=RetentionConfig(cleanup_on_start=False, temp_max_age_days=3, logs_max_age_days=7),
+        google=GoogleConfig(sheets_id=""),
     )
 
 
@@ -196,3 +199,82 @@ def test_pipeline_progress_callback_count(tmp_path: Path, monkeypatch) -> None:
         "concat",
         "done",
     ]
+
+
+def test_video_downloader_includes_ffmpeg_location(tmp_path: Path) -> None:
+    from app.download.video_downloader import VideoDownloader
+    from app.models.domain import SourceVideo
+
+    ffmpeg = tmp_path / "bin" / "ffmpeg.exe"
+    ytdlp = tmp_path / "bin" / "yt-dlp.exe"
+    logger = logging.getLogger("test")
+
+    downloader = VideoDownloader(
+        ytdlp_path=ytdlp,
+        ffmpeg_path=ffmpeg,
+        ytdlp_args=["-f", "bestvideo+bestaudio"],
+        logger=logger,
+    )
+
+    video = SourceVideo(url="https://youtu.be/test", title="T", order=1)
+    slot_dir = tmp_path / "slot"
+    slot_dir.mkdir()
+    output_path = slot_dir / "1_source.mkv"
+    output_path.write_text("ok")
+
+    captured: list[list[str]] = []
+
+    class FakeResult:
+        returncode = 0
+
+    def fake_run(cmd, **_):
+        captured.append(cmd)
+        return FakeResult()
+
+    with patch("app.download.video_downloader.subprocess.run", side_effect=fake_run):
+        downloader.download(video, slot_dir)
+
+    assert len(captured) == 1
+    cmd = captured[0]
+    idx = cmd.index("--ffmpeg-location")
+    assert cmd[idx + 1] == str(tmp_path / "bin")
+
+
+def test_thumbnail_fetcher_includes_ffmpeg_location(tmp_path: Path) -> None:
+    from app.download.thumbnail_fetcher import ThumbnailFetcher
+    from app.models.domain import SourceVideo
+
+    ffmpeg = tmp_path / "bin" / "ffmpeg.exe"
+    ytdlp = tmp_path / "bin" / "yt-dlp.exe"
+    logger = logging.getLogger("test")
+
+    fetcher = ThumbnailFetcher(
+        ytdlp_path=ytdlp,
+        ffmpeg_path=ffmpeg,
+        ytdlp_args=["--write-thumbnail", "--skip-download"],
+        logger=logger,
+    )
+
+    video = SourceVideo(url="https://youtu.be/test", title="T", order=1)
+    slot_dir = tmp_path / "slot"
+    slot_dir.mkdir()
+    (slot_dir / "1_thumb.jpg").write_text("img")
+
+    captured: list[list[str]] = []
+
+    class FakeResult:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(cmd, **_):
+        captured.append(cmd)
+        return FakeResult()
+
+    with patch("app.download.thumbnail_fetcher.subprocess.run", side_effect=fake_run):
+        fetcher.fetch(video, slot_dir)
+
+    assert len(captured) == 1
+    cmd = captured[0]
+    idx = cmd.index("--ffmpeg-location")
+    assert cmd[idx + 1] == str(tmp_path / "bin")

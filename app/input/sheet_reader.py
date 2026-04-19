@@ -62,8 +62,8 @@ class SlotLoader:
         """
         if not self._sheets_id:
             raise RuntimeError(
-                "GOOGLE_SHEETS_ID не задан в secrets/.env. "
-                "Укажите ID Google Sheets таблицы."
+                "google.sheets_id не задан в config.toml. "
+                "Укажите ID Google Sheets таблицы в секцию [google]."
             )
 
         raw_rows = self._sheets_client.read_rows(self._sheets_id, SHEETS_RANGE)

@@ -8,6 +8,7 @@ from typing import Any, Dict
 from app.config.settings import (
     AudioConfig,
     EncodingConfig,
+    GoogleConfig,
     OutputConfig,
     PathsConfig,
     RetentionConfig,
@@ -136,6 +137,11 @@ def load_config(config_path: Path | None = None) -> StitcherConfig:
         logs_max_age_days=int(ret_raw.get("logs_max_age_days", 7)),
     )
 
+    google_raw = raw.get("google", {})
+    google = GoogleConfig(
+        sheets_id=(google_raw.get("sheets_id") or "").strip(),
+    )
+
     return StitcherConfig(
         paths=paths,
         tools=tools,
@@ -146,6 +152,7 @@ def load_config(config_path: Path | None = None) -> StitcherConfig:
         thumbnail=thumbnail,
         output=output,
         retention=retention,
+        google=google,
     )
 
 

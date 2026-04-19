@@ -57,6 +57,9 @@ def valid_config_file(tmp_path: Path) -> Path:
         cleanup_on_start = true
         temp_max_age_days = 3
         logs_max_age_days = 7
+
+        [google]
+        sheets_id = "test_sheet_id"
         """
     )
     config_path = tmp_path / "config.toml"
@@ -76,6 +79,7 @@ def test_load_valid_config(valid_config_file: Path) -> None:
     assert config.thumbnail.fade_duration_seconds == 1
     assert config.ytdlp.auto_update is True
     assert config.ytdlp.update_check_interval_days == 7
+    assert config.google.sheets_id == "test_sheet_id"
 
 
 def test_missing_required_section(tmp_path: Path) -> None:

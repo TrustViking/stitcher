@@ -7,7 +7,7 @@ from pathlib import Path
 from app.config.settings import (
     AudioConfig,
     EncodingConfig,
-    EnvConfig,
+    GoogleConfig,
     OutputConfig,
     PathsConfig,
     RetentionConfig,
@@ -56,17 +56,7 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
         thumbnail=ThumbnailConfig(duration_seconds=3, source="youtube"),
         output=OutputConfig(filename_template="{date}_{time}_{lang}.mp4"),
         retention=RetentionConfig(cleanup_on_start=False, temp_max_age_days=3, logs_max_age_days=7),
-    )
-
-
-def _make_env() -> EnvConfig:
-    return EnvConfig(
-        google_sheets_id="sheet-id",
-        google_drive_folder_id="",
-        telegram_bot_token="",
-        telegram_chat_id="",
-        telegram_admin_user_ids=(),
-        telegram_user_ids=(),
+        google=GoogleConfig(sheets_id="sheet-id"),
     )
 
 
@@ -81,7 +71,6 @@ def _make_job(index: int) -> StitchJob:
 
 def test_cmd_run_processes_all_slots_and_continues_after_failure(tmp_path: Path, monkeypatch) -> None:
     config = _make_config(tmp_path)
-    env = _make_env()
     logger = logging.getLogger("test_cmd_run")
 
     jobs = [_make_job(1), _make_job(2), _make_job(3)]
@@ -115,7 +104,7 @@ def test_cmd_run_processes_all_slots_and_continues_after_failure(tmp_path: Path,
 
     monkeypatch.setattr("app.worker.pipeline.StitchPipeline", FakePipeline)
 
-    exit_code = _cmd_run(dry_run=False, config=config, env=env, logger=logger)
+    exit_code = _cmd_run(dry_run=False, config=config, logger=logger)
 
     assert exit_code == 1
     assert processed == [str(job.slot_key) for job in jobs]
@@ -123,7 +112,6 @@ def test_cmd_run_processes_all_slots_and_continues_after_failure(tmp_path: Path,
 
 def test_cmd_run_returns_zero_when_no_future_slots(tmp_path: Path, monkeypatch, capsys) -> None:
     config = _make_config(tmp_path)
-    env = _make_env()
     logger = logging.getLogger("test_cmd_run")
 
     report = SlotLoadReport(
@@ -136,7 +124,7 @@ def test_cmd_run_returns_zero_when_no_future_slots(tmp_path: Path, monkeypatch, 
     monkeypatch.setattr("main._preflight_checks", lambda *_: True)
     monkeypatch.setattr("main._load_future_slots", lambda *_: report)
 
-    exit_code = _cmd_run(dry_run=False, config=config, env=env, logger=logger)
+    exit_code = _cmd_run(dry_run=False, config=config, logger=logger)
     captured = capsys.readouterr().out
 
     assert exit_code == 0

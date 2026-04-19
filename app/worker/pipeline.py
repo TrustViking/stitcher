@@ -32,11 +32,13 @@ class StitchPipeline:
 
         self._video_downloader = VideoDownloader(
             ytdlp_path=config.tools.ytdlp_path,
+            ffmpeg_path=config.tools.ffmpeg_path,
             ytdlp_args=video_ytdlp_args,
             logger=self._logger,
         )
         self._thumbnail_fetcher = ThumbnailFetcher(
             ytdlp_path=config.tools.ytdlp_path,
+            ffmpeg_path=config.tools.ffmpeg_path,
             ytdlp_args=thumb_ytdlp_args,
             logger=self._logger,
         )
