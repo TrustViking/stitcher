@@ -63,6 +63,24 @@ def main() -> None:
     setup_logging(debug=args.debug, logs_dir=config.paths.logs_dir)
     logger = get_logger(__name__)
 
+    # --- startup path snapshot (goes to log file only, not console) ---
+    logger.debug("=== Stitcher startup ===")
+    logger.debug("PROJECT_ROOT : %s", PROJECT_ROOT)
+    logger.debug("config.toml  : %s", PROJECT_ROOT / "config.toml")
+    logger.debug("ffmpeg       : %s", config.tools.ffmpeg_path)
+    logger.debug("yt-dlp       : %s", config.tools.ytdlp_path)
+    logger.debug("gpu_profile  : %s", config.encoding.gpu_profile)
+    logger.debug("cpu_profile  : %s", config.encoding.cpu_profile)
+    logger.debug("ytdlp_video  : %s", config.encoding.ytdlp_video_profile)
+    logger.debug("ytdlp_thumb  : %s", config.encoding.ytdlp_thumbnail_profile)
+    logger.debug("temp_dir     : %s", config.paths.temp_dir)
+    logger.debug("output_dir   : %s", config.paths.output_dir)
+    logger.debug("logs_dir     : %s", config.paths.logs_dir)
+    logger.debug("state_dir    : %s", config.paths.state_dir)
+    logger.debug("secrets_dir  : %s", PROJECT_ROOT / "secrets")
+    logger.debug("========================")
+    # --- end startup path snapshot ---
+
     if config.retention.cleanup_on_start:
         from app.runtime.cleanup import run_startup_cleanup
 

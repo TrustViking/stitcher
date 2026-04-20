@@ -11,9 +11,7 @@ a = Analysis(
     ['main.py'],
     pathex=['.'],
     binaries=[],
-    datas=[
-        ('profiles', 'profiles'),
-    ],
+    datas=[],
     hiddenimports=[
         'app.config',
         'app.config.config_loader',
@@ -61,6 +59,7 @@ a = Analysis(
         'googleapiclient',
         'googleapiclient.discovery',
         'langdetect',
+        'tzdata',
     ],
     hookspath=[],
     hooksconfig={},
