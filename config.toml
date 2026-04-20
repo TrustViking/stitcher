@@ -13,8 +13,13 @@ ytdlp_path = "./tools/_yt-dlp/yt-dlp.exe"
 ffmpeg_path = "./tools/_ffmpeg/bin/ffmpeg.exe"
 
 [ytdlp]
-auto_update = true
-update_check_interval_days = 7
+auto_update                = true
+update_check_interval_days = 15
+cookies_file               = "./secrets/cookies.txt"
+cookies_warn_age_days      = 15
+deno_path                  = "./tools/_deno/deno.exe"
+deno_auto_update           = true
+deno_update_interval_days  = 15
 
 [encoding]
 gpu_profile = "./profiles/gpu_nvenc.txt"

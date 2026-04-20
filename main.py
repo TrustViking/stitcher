@@ -105,6 +105,8 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -
     print("🔵 Проверяю окружение...")
 
     from app.runtime.ytdlp_updater import maybe_update_ytdlp
+    from app.runtime.deno_updater import maybe_update_deno
+    from app.runtime.cookies_updater import check_cookies
 
     update_status = maybe_update_ytdlp(
         ytdlp_path=config.tools.ytdlp_path,
@@ -113,7 +115,21 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -
         interval_days=config.ytdlp.update_check_interval_days,
         logger=logger,
     )
+    deno_status = maybe_update_deno(
+        deno_path=config.ytdlp.deno_path,
+        state_dir=config.paths.state_dir,
+        enabled=config.ytdlp.deno_auto_update and config.ytdlp.deno_path is not None,
+        interval_days=config.ytdlp.deno_update_interval_days,
+        logger=logger,
+    )
+    cookies_status = check_cookies(
+        cookies_file=config.ytdlp.cookies_file,
+        warn_age_days=config.ytdlp.cookies_warn_age_days,
+        logger=logger,
+    )
     ytdlp_info = _build_ytdlp_info(update_status)
+    deno_info = _build_deno_info(deno_status)
+    cookies_info = _build_cookies_info(cookies_status)
     codec_label = _build_codec_label(config)
 
     print("🔵 Читаю таблицу и получаю данные видео...")
@@ -127,7 +143,7 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -
         print("Нет будущих слотов для обработки.")
         return 0
 
-    _print_header(codec_label=codec_label, ytdlp_info=ytdlp_info)
+    _print_header(codec_label=codec_label, ytdlp_info=ytdlp_info, deno_info=deno_info, cookies_info=cookies_info)
     _print_sheet_summary(report)
     _print_jobs_overview(jobs)
 
@@ -189,7 +205,11 @@ def _load_future_slots(
         )
         sheets_service = factory.create_sheets_service()
 
-        fetcher = YtDlpBinaryMetadataFetcher(ytdlp_path=config.tools.ytdlp_path)
+        fetcher = YtDlpBinaryMetadataFetcher(
+            ytdlp_path=config.tools.ytdlp_path,
+            cookies_file=config.ytdlp.cookies_file,
+            deno_path=config.ytdlp.deno_path,
+        )
         enricher = RowEnricher(metadata_fetcher=fetcher)
 
         loader = SlotLoader(
@@ -280,13 +300,15 @@ def _collect_preflight_errors(
     return errors
 
 
-def _print_header(*, codec_label: str, ytdlp_info: str) -> None:
+def _print_header(*, codec_label: str, ytdlp_info: str, deno_info: str, cookies_info: str) -> None:
     line = "═" * 59
     print(line)
     print("  STITCHER - обработка слотов из Google Sheet")
     print("─" * 59)
-    print(f"  yt-dlp  {ytdlp_info}")
-    print(f"  кодек   {codec_label}")
+    print(f"  {'yt-dlp':<9}{ytdlp_info}")
+    print(f"  {'deno':<9}{deno_info}")
+    print(f"  {'cookies':<9}{cookies_info}")
+    print(f"  {'кодек':<9}{codec_label}")
     print(line)
     print()
 
@@ -296,12 +318,45 @@ def _build_ytdlp_info(update_status) -> str:
     if update_status.current_version is None:
         return version
     if update_status.attempted and update_status.succeeded:
-        return f"{version} (обновлено сейчас)"
-    if update_status.attempted:
-        return f"{version} (обновление не удалось)"
-    if update_status.last_check_days_ago is not None:
-        return f"{version} (проверено {update_status.last_check_days_ago} дн. назад)"
-    return version
+        status = "обновлено сейчас"
+    elif update_status.attempted:
+        status = "обновление не удалось"
+    elif update_status.last_check_days_ago is not None:
+        status = f"проверено {update_status.last_check_days_ago} дн. назад"
+    else:
+        return f"{version:<16}"
+    return f"{version:<16} ({status})"
+
+
+def _build_deno_info(status) -> str:
+    if status.current_version is None:
+        return status.message  # "не настроен" или другое
+    # Обрезать "deno 2.7.12 (stable, release, ...)" → "2.7.12"
+    raw = status.current_version or ""
+    parts = raw.split()
+    # parts[0]="deno", parts[1]="2.7.12" — берём только номер версии
+    version = parts[1] if len(parts) >= 2 else raw
+    if status.attempted and status.succeeded:
+        status_str = "обновлено сейчас"
+    elif status.attempted:
+        status_str = "обновление не удалось"
+    elif status.last_check_days_ago is not None:
+        status_str = f"проверено {status.last_check_days_ago} дн. назад"
+    else:
+        return f"{version:<16}"
+    return f"{version:<16} ({status_str})"
+
+
+def _build_cookies_info(status) -> str:
+    if status.cookies_file is None:
+        return "⚠  не настроены — укажите [ytdlp].cookies_file в config.toml"
+    name = status.cookies_file.name
+    if not status.file_exists:
+        return f"{'файл не найден':<16} ⚠  {name}"
+    age = f"{status.file_age_days} дн." if status.file_age_days is not None else "?"
+    if "устарели" in status.message:
+        return f"{name:<16} ⚠  устарели ({age}) — обновите вручную"
+    return f"{name:<16} (возраст {age})"
 
 
 def _build_codec_label(config: StitcherConfig) -> str:

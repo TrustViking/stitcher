@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 from app.models.domain import DownloadedVideo, SourceVideo
 
@@ -11,11 +12,22 @@ from app.models.domain import DownloadedVideo, SourceVideo
 class VideoDownloader:
     """Скачивание видео через yt-dlp."""
 
-    def __init__(self, *, ytdlp_path: Path, ffmpeg_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        *,
+        ytdlp_path: Path,
+        ffmpeg_path: Path,
+        ytdlp_args: list[str],
+        logger: logging.Logger,
+        cookies_file: Optional[Path] = None,
+        deno_path: Optional[Path] = None,
+    ) -> None:
         self._ytdlp_path = ytdlp_path
         self._ffmpeg_path = ffmpeg_path
         self._ytdlp_args = ytdlp_args
         self._logger = logger
+        self._cookies_file = cookies_file
+        self._deno_path = deno_path
 
     def download(self, video: SourceVideo, slot_temp_dir: Path) -> DownloadedVideo:
         """Скачать видео в slot_temp_dir и вернуть DownloadedVideo."""
@@ -27,10 +39,15 @@ class VideoDownloader:
             "--ffmpeg-location",
             str(self._ffmpeg_path.parent),
             *self._ytdlp_args,
-            "-o",
-            str(output_path),
-            video.url,
         ]
+
+        if self._cookies_file and self._cookies_file.exists():
+            command += ["--cookies", str(self._cookies_file)]
+
+        if self._deno_path and self._deno_path.exists():
+            command += ["--js-runtimes", f"deno:{self._deno_path}"]
+
+        command += ["-o", str(output_path), video.url]
         command_str = subprocess.list2cmdline(command)
         self._logger.debug(
             "yt-dlp download start: order=%d url=%s output=%s command=%s",

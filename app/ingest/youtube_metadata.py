@@ -23,9 +23,17 @@ class YouTubeMetadataFetcher:
 class YtDlpBinaryMetadataFetcher(YouTubeMetadataFetcher):
     """Fetcher через локальный бинарник yt-dlp.exe."""
 
-    def __init__(self, ytdlp_path: Path, timeout_seconds: float = 30.0) -> None:
+    def __init__(
+        self,
+        ytdlp_path: Path,
+        timeout_seconds: float = 30.0,
+        cookies_file: Optional[Path] = None,
+        deno_path: Optional[Path] = None,
+    ) -> None:
         self._ytdlp_path = ytdlp_path
         self._timeout_seconds = timeout_seconds
+        self._cookies_file = cookies_file
+        self._deno_path = deno_path
 
     def fetch(self, video_url: str) -> VideoMetadata:
         command = [
@@ -34,8 +42,15 @@ class YtDlpBinaryMetadataFetcher(YouTubeMetadataFetcher):
             "--no-warnings",
             "--skip-download",
             "--no-playlist",
-            video_url,
         ]
+
+        if self._cookies_file and self._cookies_file.exists():
+            command += ["--cookies", str(self._cookies_file)]
+
+        if self._deno_path and self._deno_path.exists():
+            command += ["--js-runtimes", f"deno:{self._deno_path}"]
+
+        command.append(video_url)
         LOGGER.debug("yt-dlp metadata command: %s", " ".join(command))
 
         result = subprocess.run(

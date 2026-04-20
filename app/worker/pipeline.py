@@ -35,6 +35,8 @@ class StitchPipeline:
             ffmpeg_path=config.tools.ffmpeg_path,
             ytdlp_args=video_ytdlp_args,
             logger=self._logger,
+            cookies_file=config.ytdlp.cookies_file,
+            deno_path=config.ytdlp.deno_path,
         )
         self._thumbnail_fetcher = ThumbnailFetcher(
             ytdlp_path=config.tools.ytdlp_path,

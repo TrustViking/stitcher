@@ -1,8 +1,9 @@
 """Frozen dataclass модели конфигурации stitcher."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,11 @@ class ToolsConfig:
 class YtDlpConfig:
     auto_update: bool
     update_check_interval_days: int
+    cookies_file: Optional[Path] = None
+    deno_path: Optional[Path] = None
+    cookies_warn_age_days: int = 7
+    deno_auto_update: bool = True
+    deno_update_interval_days: int = 7
 
 
 @dataclass(frozen=True)

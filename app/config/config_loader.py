@@ -79,9 +79,25 @@ def load_config(config_path: Path | None = None) -> StitcherConfig:
     )
 
     ytdlp_raw = raw.get("ytdlp", {})
+
+    cookies_raw = ytdlp_raw.get("cookies_file", "")
+    cookies_file = None
+    if cookies_raw and str(cookies_raw).strip():
+        cookies_file = _resolve_path(str(cookies_raw).strip(), root)
+
+    deno_raw = ytdlp_raw.get("deno_path", "")
+    deno_path = None
+    if deno_raw and str(deno_raw).strip():
+        deno_path = _resolve_path(str(deno_raw).strip(), root)
+
     ytdlp = YtDlpConfig(
         auto_update=bool(ytdlp_raw.get("auto_update", True)),
         update_check_interval_days=int(ytdlp_raw.get("update_check_interval_days", 7)),
+        cookies_file=cookies_file,
+        deno_path=deno_path,
+        cookies_warn_age_days=int(ytdlp_raw.get("cookies_warn_age_days", 7)),
+        deno_auto_update=bool(ytdlp_raw.get("deno_auto_update", True)),
+        deno_update_interval_days=int(ytdlp_raw.get("deno_update_interval_days", 7)),
     )
 
     enc_raw = raw["encoding"]
