@@ -22,12 +22,15 @@ def test_build_fade_clip_returns_fade_segment(tmp_path: Path, monkeypatch) -> No
     )
     slot_temp_dir = tmp_path / "slot"
 
-    def fake_run(command, capture_output, text, check):  # noqa: ANN001
+    def fake_run(command, **kwargs):  # noqa: ANN001
+        assert kwargs["stdout"] is subprocess.DEVNULL
+        assert kwargs["stderr"] is subprocess.PIPE
+        assert kwargs["check"] is False
         assert command[-1].endswith("1_fade.mp4")
         output_path = Path(command[-1])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text("ok", encoding="utf-8")
-        return subprocess.CompletedProcess(command, 0, "", "")
+        return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
 
     monkeypatch.setattr("app.transcode.fade_clip.subprocess.run", fake_run)
 
@@ -52,8 +55,11 @@ def test_build_fade_clip_raises_on_ffmpeg_error(tmp_path: Path, monkeypatch) -> 
         logger=logging.getLogger("test_fade_clip"),
     )
 
-    def fake_run(command, capture_output, text, check):  # noqa: ANN001
-        return subprocess.CompletedProcess(command, 1, "", "boom")
+    def fake_run(command, **kwargs):  # noqa: ANN001
+        assert kwargs["stdout"] is subprocess.DEVNULL
+        assert kwargs["stderr"] is subprocess.PIPE
+        assert kwargs["check"] is False
+        return subprocess.CompletedProcess(command, 1, stdout=b"", stderr=b"boom")
 
     monkeypatch.setattr("app.transcode.fade_clip.subprocess.run", fake_run)
 

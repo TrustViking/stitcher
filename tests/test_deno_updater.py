@@ -44,6 +44,7 @@ def test_deno_nonexistent_path_disabled(tmp_path: Path) -> None:
 def test_deno_interval_not_elapsed(tmp_path: Path) -> None:
     """Если интервал не истёк — пропускаем обновление."""
     fake_path = tmp_path / "deno.exe"
+    fake_path.write_bytes(b"")  # file must exist so interval logic is not bypassed
     state_file = tmp_path / "deno_last_check.json"
     state_file.write_text(
         json.dumps({"last_check_ts": int(time.time())}), encoding="utf-8"

@@ -1,56 +1,75 @@
-# Portable-структура дистрибутива Stitcher CLI
+# Portable / installed структура Stitcher
 
-`build_cli.bat` выполняет сборку и автоматически формирует готовый portable-дистрибутив.
-После выполнения `build_cli.bat` папка `dist\stitcher\` является самодостаточным корнем:
+## Portable build (`dist\stitcher\`)
+
+Создаётся командой `build_stitcher_exe.bat`. Папка `dist\stitcher\` —
+самодостаточный portable-корень, его можно переносить целиком.
 
 ```
-dist\stitcher\               ← portable-корень (можно перенести куда угодно)
-  stitcher.exe               ← точка запуска
-  config.toml                ← конфигурация (копируется из корня проекта)
-  profiles\                  ← ffmpeg-профили (копируются из корня проекта)
+dist\stitcher\
+  stitcher.exe              ← точка запуска
+  run_debug.bat             ← запуск с выводом exit code и pause
+  stitch.ico                ← иконка
+  config.toml               ← локальная конфигурация (личный sheets_id)
+  config.example.toml       ← шаблон конфигурации
+  profiles\                 ← ffmpeg/yt-dlp профили
     gpu_nvenc.txt
     cpu_libx264.txt
     ytdlp_video.txt
     ytdlp_thumbnail.txt
-  tools\                     ← внешние бинарники (копируются из корня проекта)
-    _ffmpeg\
-      bin\
-        ffmpeg.exe
+    ytdlp_bestvideo.txt
+  tools\                    ← внешние бинарники, автообновляются
+    _ffmpeg\bin\
+      ffmpeg.exe
     _yt-dlp\
       yt-dlp.exe
-  secrets\                   ← копируется из корня проекта
-    .env                     ← GOOGLE_SHEETS_ID и Telegram-переменные
-    credentials.json         ← OAuth2 Desktop client из Google Cloud Console
-    token.json               ← генерируется при первом запуске (OAuth flow)
-  _internal\                 ← Python runtime (не трогать)
-  logs\                      ← создаётся автоматически при первом запуске
-  temp\                      ← создаётся автоматически при первом запуске
-  output\                    ← создаётся автоматически при первом запуске
-  state\                     ← создаётся автоматически при первом запуске
+    _deno\
+      deno.exe
+  secrets\
+    README.txt              ← инструкция для пользователя
+    credentials.json        ← OAuth2 Desktop client (личный)
+    token.json              ← создаётся после первого OAuth (личный)
+    cookies.txt             ← опционально (личный)
+  logs\                     ← создаётся автоматически
+  state\                    ← создаётся автоматически
+  temp\                     ← создаётся автоматически
+  output\                   ← создаётся автоматически
+  _internal\                ← Python runtime, не трогать
 ```
 
-## Сборка
+## Installer (`dist\installer\stitcher-setup-<version>.exe`)
 
-```
-build_cli.bat
-```
+Inno Setup-installer ставит то же самое, но с разделением:
 
-Скрипт:
-1. Запускает PyInstaller с `stitcher.spec`
-2. Копирует `config.toml`, `profiles\`, `tools\`, `secrets\` из корня проекта в `dist\stitcher\`
-3. Сообщает об отсутствующих ресурсах (WARN), если какой-то папки нет
+- `release` build (`build_release.bat`) — без реальных секретов, без личного
+  `sheets_id`. Подходит для GitHub Releases. В `secrets\` только `README.txt`.
+  `config.toml` развёртывается из `config.example.toml` при первой установке
+  (с пустым `sheets_id`) и не перезаписывается на обновлении (`onlyifdoesntexist`).
+- `local` build (`build_local.bat`) — с реальными секретами из локальной
+  папки `secrets\` И с личным `config.toml` из корня проекта (включая
+  настоящий `sheets_id`). После установки приложение полностью готово
+  к запуску без правки конфига. НЕ публиковать. Существующие
+  `config.toml`, `credentials.json`, `token.json`, `cookies.txt` у уже
+  установленного приложения не перезаписываются (`onlyifdoesntexist`).
+
+Ярлык `Stitcher` на рабочем столе запускает `run_debug.bat`, который
+вызывает `stitcher.exe` и оставляет окно консоли открытым после завершения,
+чтобы пользователь видел сообщения preflight и итоговый exit code.
 
 ## Запуск
 
 ```
+# Portable
 dist\stitcher\stitcher.exe              # обычный прогон
-dist\stitcher\stitcher.exe --dry-run    # smoke test без реальной обработки
+dist\stitcher\stitcher.exe --dry-run    # smoke test без обработки
 dist\stitcher\stitcher.exe --debug      # подробное логирование
+
+# Installed (после установки installer'а)
+Desktop\Stitcher (ярлык → run_debug.bat → stitcher.exe)
 ```
 
-## Примечания
+## Telegram
 
-- `token.json` генерируется при первом запуске через браузер (OAuth2 flow).
-  После первого успешного входа токен сохраняется и последующие запуски не требуют браузера.
-- `profiles\` — внешние файлы, редактируются без пересборки.
-- `logs\`, `temp\`, `output\`, `state\` создаются приложением автоматически при первом запуске.
+Stitcher v1 — локальное CLI/EXE-приложение без Telegram-бота. Запуск только
+через ярлык/EXE. Telegram-интеграция может быть добавлена позже как отдельная
+точка входа, но не входит в текущую версию.

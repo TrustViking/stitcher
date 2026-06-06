@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 from app.models.domain import DownloadedThumbnail, SourceVideo
 
@@ -11,11 +12,22 @@ from app.models.domain import DownloadedThumbnail, SourceVideo
 class ThumbnailFetcher:
     """Получение превью видео через yt-dlp."""
 
-    def __init__(self, *, ytdlp_path: Path, ffmpeg_path: Path, ytdlp_args: list[str], logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        *,
+        ytdlp_path: Path,
+        ffmpeg_path: Path,
+        ytdlp_args: list[str],
+        logger: logging.Logger,
+        cookies_file: Optional[Path] = None,
+        deno_path: Optional[Path] = None,
+    ) -> None:
         self._ytdlp_path = ytdlp_path
         self._ffmpeg_path = ffmpeg_path
         self._ytdlp_args = ytdlp_args
         self._logger = logger
+        self._cookies_file = cookies_file
+        self._deno_path = deno_path
 
     def fetch(self, video: SourceVideo, slot_temp_dir: Path) -> DownloadedThumbnail:
         """Скачать thumbnail видео в slot_temp_dir."""
@@ -27,10 +39,15 @@ class ThumbnailFetcher:
             "--ffmpeg-location",
             str(self._ffmpeg_path.parent),
             *self._ytdlp_args,
-            "-o",
-            str(output_stem),
-            video.url,
         ]
+
+        if self._cookies_file is not None and self._cookies_file.exists():
+            command.extend(["--cookies", str(self._cookies_file)])
+
+        if self._deno_path is not None and self._deno_path.exists():
+            command.extend(["--js-runtimes", f"deno:{self._deno_path}"])
+
+        command.extend(["-o", str(output_stem), video.url])
 
         self._logger.debug("yt-dlp thumbnail command: %s", " ".join(command))
         result = subprocess.run(command, capture_output=True, text=True, check=False)

@@ -58,11 +58,20 @@ def _run_command(
 ) -> subprocess.CompletedProcess[str]:
     logger.debug("ffmpeg %s command: %s", label, " ".join(command))
     started = time.monotonic()
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
     elapsed = time.monotonic() - started
-    if result.stdout:
-        logger.debug("ffmpeg %s stdout: %s", label, result.stdout.strip())
-    if result.stderr:
-        logger.debug("ffmpeg %s stderr: %s", label, result.stderr.strip())
+    stderr_text = (result.stderr or b"").decode("utf-8", errors="replace").strip()
+    if stderr_text:
+        logger.debug("ffmpeg %s stderr: %s", label, stderr_text)
     logger.debug("ffmpeg %s finished: returncode=%d elapsed=%.2fs", label, result.returncode, elapsed)
-    return result
+    return subprocess.CompletedProcess(
+        args=result.args,
+        returncode=result.returncode,
+        stdout="",
+        stderr=stderr_text,
+    )

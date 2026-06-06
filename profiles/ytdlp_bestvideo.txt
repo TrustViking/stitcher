@@ -1,0 +1,4 @@
+# yt-dlp профиль: скачивание видео
+# Аргументы вставляются перед <output_path> и <url>
+-f bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio
+--merge-output-format mkv

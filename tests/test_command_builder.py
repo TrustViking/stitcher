@@ -76,6 +76,9 @@ def test_build_concat_command() -> None:
     assert command == [
         "ffmpeg",
         "-y",
+        "-loglevel",
+        "warning",
+        "-nostats",
         "-f",
         "concat",
         "-safe",

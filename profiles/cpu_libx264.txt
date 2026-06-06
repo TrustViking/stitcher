@@ -1,3 +1,5 @@
+-loglevel warning
+-nostats
 -c:v libx264
 -preset medium
 -b:v 10M

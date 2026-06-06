@@ -1,28 +1,19 @@
 ########################################
-# streamertg: privacy + clean repo
+# Stitcher: privacy + clean repo
 ########################################
 
 ########################################
 # Secrets / credentials (НЕ КОМИТИТЬ)
 ########################################
-secrets/
-secrets/.env
-!secrets/.env.example
-secrets/token.json
-secrets/credentials.json
-*.env
-# если хочешь хранить шаблон:
-!.env.example
+secrets/*
+!secrets/README.txt
 
 # Google OAuth / API
 credentials*.json
-credentials_bot.json
-.credentials_bot.json
 client_secret*.json
 *oauth*.json
 *service_account*.json
 *service-account*.json
-streamertg-*.json
 
 # Keys / certs
 *.pem
@@ -30,10 +21,10 @@ streamertg-*.json
 *.p12
 
 ########################################
-# Local helper materials
+# Local config (личный sheets_id и т.п.)
 ########################################
-_HELP/
-docs_example/
+config.toml
+!config.example.toml
 
 ########################################
 # Python / caches
@@ -60,17 +51,12 @@ dist/
 venv/
 ENV/
 .venv_*/
-# на всякий случай (если вдруг создашь так)
 .venv-*/
-.env*
-# если используешь poetry:
-.poetry/
 
 ########################################
-# Logs / temp / outputs
+# Logs / temp / outputs (runtime артефакты)
 ########################################
 *.log
-*.ico
 logs/
 tmp/
 temp/
@@ -78,32 +64,21 @@ out/
 output/
 outputs/
 downloads/
-data/
-docs/
-image/
-tg/
 state/
 tools/
 
 ########################################
-# IDE / OS / local workspace stuff
+# IDE / OS
 ########################################
 .vscode/
+_HELP/
 *.code-workspace
-
 Thumbs.db
 Desktop.ini
 .DS_Store
 
 ########################################
-# Optional: local launcher scripts with absolute paths
+# Local launcher scripts (личные пути)
 ########################################
-*.bat
-!*.example.bat
-########################################
-# Local app config (keep only example)
-########################################
-app/config/runtime/app_config.yaml
-app/config/runtime/app_config.*.yaml
-!app/config/runtime/app_config.example.yaml
-
+*.local.bat
+run_local*.bat

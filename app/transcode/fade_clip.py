@@ -66,10 +66,16 @@ class FadeClipBuilder:
             "-shortest",
             str(output_path),
         ]
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
         self._logger.debug("Fade clip: returncode=%d", result.returncode)
         if result.returncode != 0:
-            raise RuntimeError(f"Fade clip failed: {result.stderr.strip()}")
+            stderr_text = (result.stderr or b"").decode("utf-8", errors="replace").strip()
+            raise RuntimeError(f"Fade clip failed: {stderr_text}")
         return NormalizedSegment(
             file_path=output_path,
             segment_type="fade_out",

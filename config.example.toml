@@ -1,6 +1,6 @@
 
 [google]
-sheets_id = "1JfMn3gUcUb2nVoSpgUlLmXh20uiZ12p7nNnnKrYiIOw"
+sheets_id = ""
 
 [paths]
 temp_dir = "./temp"
@@ -16,7 +16,7 @@ ffmpeg_path = "./tools/_ffmpeg/bin/ffmpeg.exe"
 auto_update                = true
 update_check_interval_days = 15
 cookies_file               = "./secrets/cookies.txt"
-cookies_warn_age_days      = 30
+cookies_warn_age_days      = 15
 deno_path                  = "./tools/_deno/deno.exe"
 deno_auto_update           = true
 deno_update_interval_days  = 15
@@ -51,4 +51,3 @@ filename_template = "{lang}_{date}_{time}.mp4"
 cleanup_on_start = true
 temp_max_age_days = 3
 logs_max_age_days = 7
-

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -12,14 +12,17 @@ from app.google.sheets_client import GoogleSheetsClient
 from app.ingest.youtube_metadata import YtDlpBinaryMetadataFetcher
 from app.input.row_enricher import RowEnricher
 from app.input.sheet_parser import parse_sheet_datetime
-from app.models.domain import SlotKey, SourceVideo, StitchJob
+from app.models.domain import RawSheetRow, SlotKey, SourceVideo, StitchJob
 from app.runtime.logging_config import get_logger
 
 LOGGER = get_logger(__name__)
 try:
     _KYIV_TZ = ZoneInfo("Europe/Kyiv")
-except ZoneInfoNotFoundError:
-    _KYIV_TZ = timezone.utc
+except ZoneInfoNotFoundError as exc:
+    raise RuntimeError(
+        "Часовой пояс 'Europe/Kyiv' не найден. "
+        "Установите пакет tzdata: pip install tzdata"
+    ) from exc
 SHEETS_RANGE = "A:Z"
 
 
@@ -30,6 +33,7 @@ class SlotLoadReport:
     enriched_rows: int
     recognized_columns: list[str]
     rows_by_language: dict[str, int] = field(default_factory=dict)
+    future_raw_count: int = 0
 
 
 class SlotLoader:
@@ -47,6 +51,18 @@ class SlotLoader:
         self._enricher = enricher
         self._config = config
         self._sheets_id = sheets_id.strip()
+
+    @staticmethod
+    def _is_future_raw(row: RawSheetRow, now: datetime) -> bool:
+        if not row.date_raw or not row.time_raw:
+            return False
+
+        try:
+            slot_datetime = parse_sheet_datetime(row.date_raw, row.time_raw, _KYIV_TZ)
+        except ValueError:
+            return False
+
+        return slot_datetime > now
 
     def load_future_slots(self) -> SlotLoadReport:
         """Загрузить строки из Google Sheet и вернуть отчет по будущим слотам.
@@ -69,6 +85,14 @@ class SlotLoader:
         raw_rows = self._sheets_client.read_rows(self._sheets_id, SHEETS_RANGE)
         LOGGER.debug("Прочитано %d сырых строк из Google Sheets.", len(raw_rows))
 
+        now = datetime.now(_KYIV_TZ)
+        future_raw = [row for row in raw_rows if SlotLoader._is_future_raw(row, now)]
+        LOGGER.debug(
+            "Предфильтр по дате: %d из %d строк — в будущем, передаём в enricher.",
+            len(future_raw),
+            len(raw_rows),
+        )
+
         if self._enricher is None:
             self._enricher = RowEnricher(
                 metadata_fetcher=YtDlpBinaryMetadataFetcher(
@@ -76,10 +100,8 @@ class SlotLoader:
                 )
             )
 
-        rows = self._enricher.enrich(raw_rows)
+        rows = self._enricher.enrich(future_raw)
         LOGGER.debug("Обогащено %d строк.", len(rows))
-
-        now = datetime.now(_KYIV_TZ)
 
         # --- Группировка: slot_key → list[(slot_datetime, SourceVideo)] ---
         groups: Dict[SlotKey, List[tuple[datetime, SourceVideo]]] = defaultdict(list)
@@ -137,6 +159,7 @@ class SlotLoader:
                 enriched_rows=len(rows),
                 recognized_columns=["Links", "Date", "Time"],
                 rows_by_language={},
+                future_raw_count=len(future_raw),
             )
 
         # --- Сборка StitchJob из каждой группы ---
@@ -175,6 +198,7 @@ class SlotLoader:
             enriched_rows=len(rows),
             recognized_columns=["Links", "Date", "Time"],
             rows_by_language=rows_by_language,
+            future_raw_count=len(future_raw),
         )
 
     def load_slot_by_key(self, key: str) -> Optional[StitchJob]:

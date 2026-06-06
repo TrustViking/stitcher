@@ -55,7 +55,7 @@ def _make_config(tmp_path: Path) -> StitcherConfig:
     gpu_profile.write_text("-c:v h264_nvenc\n", encoding="utf-8")
     cpu_profile.write_text("-c:v libx264\n", encoding="utf-8")
     ytdlp_video_profile.write_text(
-        "-f bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio\n--merge-output-format mkv\n",
+        "-f bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]\n--merge-output-format mkv\n",
         encoding="utf-8",
     )
     ytdlp_thumbnail_profile.write_text(
@@ -212,7 +212,7 @@ def test_video_downloader_includes_ffmpeg_location(tmp_path: Path) -> None:
     downloader = VideoDownloader(
         ytdlp_path=ytdlp,
         ffmpeg_path=ffmpeg,
-        ytdlp_args=["-f", "bestvideo+bestaudio"],
+        ytdlp_args=["-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]"],
         logger=logger,
     )
 

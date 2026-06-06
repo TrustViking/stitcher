@@ -1,4 +1,8 @@
 # yt-dlp профиль: скачивание видео
 # Аргументы вставляются перед <output_path> и <url>
--f bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio
+-f bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]
 --merge-output-format mkv
+--socket-timeout 30
+--retries 15
+--fragment-retries 15
+--retry-sleep 5

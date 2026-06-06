@@ -46,10 +46,6 @@ def main() -> None:
     _setup_stdio_utf8()
     print("🔵 Stitcher запускается...")
 
-    from app.runtime.env_loader import load_env_file
-
-    load_env_file()
-
     from app.config.config_loader import load_config
 
     try:
@@ -126,30 +122,34 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -
         cookies_file=config.ytdlp.cookies_file,
         warn_age_days=config.ytdlp.cookies_warn_age_days,
         logger=logger,
+        ytdlp_path=config.tools.ytdlp_path,
     )
     ytdlp_info = _build_ytdlp_info(update_status)
     deno_info = _build_deno_info(deno_status)
     cookies_info = _build_cookies_info(cookies_status)
     codec_label = _build_codec_label(config)
 
-    print("🔵 Читаю таблицу и получаю данные видео...")
+    print("🔵 Читаю таблицу и проверяю даты слотов...")
 
     report = _load_future_slots(config, logger)
     if report is None:
         return 1
 
     jobs = report.jobs
-    if not jobs:
-        print("Нет будущих слотов для обработки.")
-        return 0
 
     _print_header(codec_label=codec_label, ytdlp_info=ytdlp_info, deno_info=deno_info, cookies_info=cookies_info)
     _print_sheet_summary(report)
+
+    if not jobs:
+        _print_no_slots_message(report)
+        return 0
+
     _print_jobs_overview(jobs)
 
     total_slots = len(jobs)
     successful = 0
     failures: list[tuple[str, str]] = []
+    deferred: list[StitchJob] = []
     started = time.monotonic()
 
     from app.worker.pipeline import StitchPipeline
@@ -171,9 +171,73 @@ def _cmd_run(*, dry_run: bool, config: StitcherConfig, logger: logging.Logger) -
             _print_slot_success(result)
         else:
             error = result.error_message or "Неизвестная ошибка"
-            failures.append((_format_slot(job), error))
-            print(f"  ❌ Слот завершился с ошибкой: {error}")
+            is_network = (
+                result.error_message is not None
+                and "[temporary-network]" in result.error_message
+            )
+            if is_network:
+                deferred.append(job)
+                logger.warning("Deferred slot due to network error: %s", _format_slot(job))
+                print(f"  ⚠  Сетевая ошибка при скачивании. Слот отложен на повтор.")
+            else:
+                failures.append((_format_slot(job), error))
+                print(f"  ❌ Слот завершился с ошибкой: {error}")
         _print_separator()
+
+    if deferred:
+        retry_wait_seconds = 60
+        line = "═" * 59
+        logger.info(
+            "Deferred retry: %d slot(s) will be retried after %ds pause",
+            len(deferred),
+            retry_wait_seconds,
+        )
+        print()
+        print(line)
+        print(f"  ОТЛОЖЕННЫЕ СЛОТЫ: {len(deferred)} шт. Повтор через {retry_wait_seconds} сек...")
+        print(line)
+        print()
+        logger.info("Deferred retry: waiting %d seconds before retry pass", retry_wait_seconds)
+        print(f"  ⏳ Ожидание {retry_wait_seconds} секунд... (Ctrl+C для отмены)")
+        try:
+            time.sleep(retry_wait_seconds)
+        except KeyboardInterrupt:
+            logger.warning(
+                "Deferred retry: cancelled by user (KeyboardInterrupt), %d slot(s) skipped",
+                len(deferred),
+            )
+            print("\n  ⏹  Прервано пользователем. Отложенные слоты пропущены.")
+            for job in deferred:
+                failures.append((_format_slot(job), "Повтор отменён пользователем (Ctrl+C)"))
+            deferred.clear()
+
+        print()
+        retry_total = len(deferred)
+        for retry_index, job in enumerate(deferred, start=1):
+            logger.info(
+                "Deferred retry: starting slot %d/%d: %s",
+                retry_index,
+                retry_total,
+                _format_slot(job),
+            )
+            _print_slot_header(index=retry_index, total=retry_total, job=job)
+            print(f"  🔁 Повторная попытка (сетевой сбой при первом прогоне)")
+            pipeline = StitchPipeline(config, progress=CliProgressTracker())
+            result = pipeline.run(job)
+            if result.success:
+                successful += 1
+                logger.info("Deferred retry: slot succeeded on retry: %s", _format_slot(job))
+                _print_slot_success(result)
+            else:
+                error = result.error_message or "Неизвестная ошибка"
+                logger.warning(
+                    "Deferred retry: slot failed again on retry: %s | %s",
+                    _format_slot(job),
+                    error,
+                )
+                failures.append((_format_slot(job), error))
+                print(f"  ❌ Повтор также завершился с ошибкой: {error}")
+            _print_separator()
 
     total_duration = time.monotonic() - started
     _print_summary(
@@ -410,10 +474,35 @@ def _print_sheet_summary(report: SlotLoadReport) -> None:
     lang_parts = ", ".join(
         f"{lang.upper()}={count}"
         for lang, count in sorted(report.rows_by_language.items())
-    )
-    print(f"  таблица:   {report.total_rows} строк")
-    print(f"  дополнено: {report.enriched_rows}/{report.total_rows}")
-    print(f"  языки:     {lang_parts}")
+    ) or "—"
+    print(f"  таблица:         {report.total_rows} строк")
+    print(f"  актуально:       {report.future_raw_count}/{report.total_rows}")
+    print(f"  дополнено:       {report.enriched_rows}/{report.future_raw_count}")
+    print(f"  языки:           {lang_parts}")
+    print()
+
+
+def _print_no_slots_message(report: SlotLoadReport) -> None:
+    future = report.future_raw_count
+    total = report.total_rows
+    line = "─" * 59
+    print("📋 Определили слоты: 0")
+    print()
+    print(line)
+    print("  Нет будущих слотов для обработки.")
+    print("  ⏹  Обработка не запускалась.")
+    print()
+    if future == 0:
+        print(f"  Из {total} строк таблицы ни одна не содержит")
+        print(f"  будущей даты/времени по часовому поясу Europe/Kyiv.")
+        print(f"  Все найденные строки уже в прошлом или имеют")
+        print(f"  некорректный формат даты/времени.")
+    else:
+        print(f"  Найдено {future} строк с будущей датой, но ни одна")
+        print(f"  не сформировала корректный слот после обогащения.")
+    print()
+    print("  Обновите Date/Time в Google Sheet и запустите снова.")
+    print(line)
     print()
 
 

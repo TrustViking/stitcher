@@ -8,8 +8,6 @@
 
 ```
 Google Sheet → SheetClient (raw) → RowEnricher (metadata+lang) → SlotLoader → StitchJob → StitchPipeline → MP4
-                                                                                                ↑
-                                                                                    Telegram bot (bot.py, отдельная точка входа)
 ```
 
 ## Структура проекта
@@ -17,18 +15,20 @@ Google Sheet → SheetClient (raw) → RowEnricher (metadata+lang) → SlotLoade
 ```
 stitcher/
   main.py                    # CLI entry point (argparse: --dry-run, --debug)
-  bot.py                     # Telegram bot entry point (aiogram 3.x)
-  build_cli.bat              # Сборка CLI EXE через PyInstaller
+  build_stitcher_exe.bat     # Portable build через PyInstaller
+  build_release.bat          # Inno Setup installer без секретов
+  build_local.bat            # Inno Setup installer с локальными секретами
   stitcher.spec              # PyInstaller spec (onedir, CLI-only)
   dist_layout.md             # Описание portable-структуры дистрибутива
-  config.toml                # TOML-конфигурация
+  config.toml                # Локальная TOML-конфигурация
+  config.example.toml        # Публичный шаблон конфигурации
   requirements.txt           # Python-зависимости
   profiles/
     gpu_nvenc.txt            # ffmpeg GPU профиль (h264_nvenc)
     cpu_libx264.txt          # ffmpeg CPU fallback профиль
   app/
     config/
-      settings.py            # Frozen dataclasses: StitcherConfig, EnvConfig и др.
+      settings.py            # Frozen dataclasses: StitcherConfig и вложенные config-модели
       config_loader.py       # load_config() → StitcherConfig из config.toml
     models/
       domain.py              # Доменные модели: StitchJob, SlotKey, SourceVideo, WorkerResult
@@ -53,13 +53,9 @@ stitcher/
     ffmpeg/
       command_builder.py     # load_profile(), build_*_command()
       codec_fallback.py      # run_with_fallback() — GPU → CPU fallback
-    bot/
-      handlers.py            # aiogram handlers: /start, /stop, stitch pipeline
-      auth.py                # Telegram auth: проверка user_id по спискам
     runtime/
       paths.py               # PROJECT_ROOT (frozen-aware), StitcherPaths, get_project_paths()
-      logging_config.py      # setup_logging(), setup_bot_logging(), get_logger()
-      env_loader.py          # load_env_file(), load_env_config() → EnvConfig
+      logging_config.py      # setup_logging(), get_logger()
       cleanup.py             # run_startup_cleanup() — очистка temp и logs
       ytdlp_updater.py       # maybe_update_ytdlp() — автообновление yt-dlp
     google/
@@ -69,7 +65,6 @@ stitcher/
       pipeline.py            # StitchPipeline.run() → WorkerResult
       progress.py            # ProgressTracker, CliProgressTracker
   tests/
-    test_bot_auth.py
     test_cmd_run.py
     test_command_builder.py
     test_config.py
@@ -89,8 +84,7 @@ stitcher/
 
 | Файл | Назначение | Команда запуска |
 |------|-----------|-----------------|
-| `main.py` | CLI-пайплайн | `python main.py` или `main.bat` |
-| `bot.py` | Telegram-бот | `python bot.py` или `bot.bat` |
+| `main.py` | CLI-пайплайн | `python main.py` |
 | `stitcher.exe` | Собранный CLI | `stitcher.exe` (после сборки) |
 
 ## Рабочие CLI-команды
@@ -101,24 +95,23 @@ python main.py --dry-run     # Пробный прогон без реально
 python main.py --debug       # Подробное логирование
 ```
 
+## Сборка
+
+- `build_stitcher_exe.bat` — portable build в `dist\stitcher\`
+- `build_release.bat` — Inno Setup installer без секретов, для публикации
+- `build_local.bat` — Inno Setup installer с локальными секретами, для себя
+
+Запуск пользователем — через desktop shortcut "Stitcher", который ведёт на `run_debug.bat`.
+
+Telegram-бота в Stitcher v1 нет. Может быть добавлен позже как отдельный entry point.
+
 ## Конфигурация
 
 - Формат: TOML (`config.toml` в корне проекта)
-- Секции: `[paths]` `[tools]` `[ytdlp]` `[encoding]` `[video]` `[audio]` `[thumbnail]` `[output]` `[retention]`
+- Секции: `[google]` `[paths]` `[tools]` `[ytdlp]` `[encoding]` `[video]` `[audio]` `[thumbnail]` `[output]` `[retention]`
 - Все пути в `config.toml` — относительные, резолвятся от `PROJECT_ROOT`
 - `PROJECT_ROOT` определяется в `app/runtime/paths.py` (frozen-aware: dev vs EXE)
-- Переменные окружения: `secrets/.env` (по образцу `secrets/.env.example`)
-
-## Переменные окружения (`secrets/.env`)
-
-| Переменная | Обязательна для CLI | Назначение |
-|-----------|--------------------|-----------| 
-| `GOOGLE_SHEETS_ID` | ✅ да | ID Google-таблицы |
-| `GOOGLE_DRIVE_FOLDER_ID` | нет | Не используется в CLI |
-| `TELEGRAM_BOT_TOKEN` | нет | Только для bot.py |
-| `TELEGRAM_CHAT_ID` | нет | Только для bot.py |
-| `TELEGRAM_ADMIN_USER_IDS` | нет | Только для bot.py |
-| `TELEGRAM_USER_IDS` | нет | Только для bot.py |
+- `google.sheets_id` хранится в `config.toml`
 
 ## Google OAuth2
 
@@ -156,7 +149,6 @@ pytest tests/
 | 6 Concat | Manifest, финальная склейка | ✅ Done |
 | 7 Worker | Оркестрация пайплайна | ✅ Done |
 | 8 CLI | Рабочий CLI-пайплайн | ✅ Done |
-| 9 Bot | Telegram-бот (aiogram 3.x) | ✅ Done |
 | 10 Build | PyInstaller EXE, portable-дистрибутив | 🔄 In progress |
 
 ## Технические константы
@@ -173,8 +165,6 @@ pytest tests/
 - Один слот за раз (без очереди задач)
 - Целостность: если одно видео не прошло → весь слот падает
 - Все видео перекодируются (не копируются)
-- Готовый файл не отправляется в Telegram — бот пишет только путь
-
 ## НЕ входит в проект
 
 Модули `llm/`, `publish/`, `pipeline/`, `planning/`, `observability/`, `core/`,

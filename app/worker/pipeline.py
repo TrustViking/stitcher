@@ -43,6 +43,8 @@ class StitchPipeline:
             ffmpeg_path=config.tools.ffmpeg_path,
             ytdlp_args=thumb_ytdlp_args,
             logger=self._logger,
+            cookies_file=config.ytdlp.cookies_file,
+            deno_path=config.ytdlp.deno_path,
         )
         self._video_normalizer = VideoNormalizer(
             ffmpeg_path=config.tools.ffmpeg_path,

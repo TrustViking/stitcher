@@ -116,6 +116,9 @@ def build_concat_command(
     return [
         str(ffmpeg_path),
         "-y",
+        "-loglevel",
+        "warning",
+        "-nostats",
         "-f",
         "concat",
         "-safe",

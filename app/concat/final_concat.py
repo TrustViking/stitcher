@@ -39,16 +39,20 @@ class FinalConcat:
         )
         self._logger.debug("ffmpeg concat command: %s", " ".join(command))
         started = time.monotonic()
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
         elapsed = time.monotonic() - started
-        if result.stdout:
-            self._logger.debug("ffmpeg concat stdout: %s", result.stdout.strip())
-        if result.stderr:
-            self._logger.debug("ffmpeg concat stderr: %s", result.stderr.strip())
+        stderr_text = (result.stderr or b"").decode("utf-8", errors="replace").strip()
+        if stderr_text:
+            self._logger.debug("ffmpeg concat stderr: %s", stderr_text)
         self._logger.debug("Concat finished: returncode=%d elapsed=%.2fs", result.returncode, elapsed)
 
         if result.returncode != 0:
-            raise RuntimeError(f"Concat failed: {(result.stderr or '').strip()}")
+            raise RuntimeError(f"Concat failed: {stderr_text}")
         if not output_path.exists():
             raise RuntimeError(f"Выходной файл после concat не найден: {output_path}")
 
